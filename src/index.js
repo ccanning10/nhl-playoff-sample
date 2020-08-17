@@ -28,7 +28,7 @@ const idToTeamMap = {
 // TODO: If a game is not live, display the date of the next game.
 // TODO: Break down into components
 // TODO: Hooks?
-// TODO: Redux? 
+// TODO: Redux?
 
 const listOfSeries = [
   // Vegas, chicago
@@ -93,8 +93,8 @@ class Home extends React.Component {
         (result) => {
           result.dates.forEach((date, i) => {
             date.games.forEach((game, ii) => {
-              let ended = game.status.abstractGameState == "Final";
-              if (ended) {
+              let gameStatus = game.status.abstractGameState;
+              if (gameStatus == "Final") {
                 let awayTeamId = game.teams.away.team.id;
                 let awayTeamScore = game.teams.away.score;
 
@@ -106,6 +106,8 @@ class Home extends React.Component {
                 } else {
                   games.[homeTeamId]++;
                 }
+              } else if (gameStatus == "Live") {
+                let gameLink = game.link;
               }
             });
           });
@@ -117,19 +119,18 @@ class Home extends React.Component {
             games.winner = team2Id;
           }
 
-          console.log(this.state.games);
-          this.setState({
-            ...this.state, games: this.state.games.concat([games]), result: result
-          })
+          this.setState((state) => ({
+            ...state, games: this.state.games.concat([games]),
+            // result: result
+          }));
         },
         // Note: it's important to handle errors here
         // instead of a catch() block so that we don't swallow
         // exceptions from actual bugs in components.
         (error) => {
-          this.setState({
-            isLoaded: true,
-            error
-          });
+          this.setState((state) => ({
+            ...state, error: error
+          }));
         }
       );
   }
@@ -137,11 +138,6 @@ class Home extends React.Component {
   componentDidMount() {
     listOfSeries.forEach(series => {
       this.getGames(series);
-      this.setState({
-        isLoaded: true,
-        items: null,
-        homeScore: "sfsadf",
-      })
     });
   }
 
@@ -150,19 +146,19 @@ class Home extends React.Component {
       .then(res => res.json())
       .then(
         (result) => {
-          this.setState({
+          this.setState((state) => ({
+            ...state,
             period: result.liveData.linescore.currentPeriodOrdinal,
             timeRemaining: result.liveData.linescore.currentPeriodTimeRemaining
-          });
+          }));
         },
         // Note: it's important to handle errors here
         // instead of a catch() block so that we don't swallow
         // exceptions from actual bugs in components.
         (error) => {
-          this.setState({
-            isLoaded: true,
-            error
-          });
+          this.setState((state) => ({
+            ...state, error: error
+          }));
         }
       )
   }
