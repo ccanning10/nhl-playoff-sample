@@ -2,54 +2,75 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 // import './index.css';
 
-// for a team, let's show the score for the current game.
-
-// first, let's pick a team id
-// Stars = 25
-
-// We need to keep track of the current score. Let's get and store the score
-
-//
-//
 const idToTeamMap = {
   25: "Dallas Stars",
   20: "Calgary Flames",
+  54: "Vegas Golden Knights",
+  16: "Arizona Chicago Blackhawks",
+  21: "Colorado Avalanche",
+  53: "Arizona Coyotes",
+  19: "St. Louis Blues",
+  28: "San Jose Sharks",
+  4: "Philidelphia Flyers",
+  8: "Montreal Canadiens",
+  14: "Tampa Bay Lightning",
+  29: "Columbus Blue Jackets",
+  15: "Washington Capitals",
+  2: "New York Islanders",
+  6: "Boston Bruins",
+  12: "Carolina Hurricanes",
 };
-//
 
 // I'll create the tree bracket data structure on my own, and I'll have to update it I guess
 // can proably do something really cool to have it update automatically, but for now I'll do it
 
-// Go through each series, and pick a team. Query for their games since playoff start.
-//   can we limit to games against the opponent?
-//   can we limit to games over?
-//   Go through all of the games and get who won each game.
-// We can the record of ended games.
-// If a game is live display it.
-// If a game is not live, display the date of the next game.
+// TODO: If a game is live display it.
+// TODO: If a game is not live, display the date of the next game.
 
+const listOfSeries = [
+  // Vegas, chicago
+  {team1: 54, team2: 16},
+  // Avalanche, Coyotes
+  {team1: 21, team2: 53},
+  // Stars, glames
+  {team1: 25, team2: 20},
+  // Blues, Sharks
+  {team1: 19, team2: 28},
 
-const listOfSeries = [{team1: 25, team2: 20}];
+  //Flyers, canadiens
+  {team1: 4, team2: 8},
+  //Lightning, Columbus
+  {team1: 14, team2: 29},
+  // Capitals, Islanders
+  {team1: 15, team2: 2},
+  // Bruins, Hurricanes
+  {team1: 6, team2: 12},
+];
 
 class Home extends React.Component {
   constructor(props) {
     super(props);
-    this.state = {games: {}}
+    this.state = {games: []}
   }
 
   render() {
     return (
       <div>
         <h1> Hello Claudole! </h1>
-        <div>
-          Series 1
-        </div>
-        <div>
-          {idToTeamMap[listOfSeries[0].team1]} vs {idToTeamMap[listOfSeries[0].team2]}
-        </div>
-        <div>
-          {this.state.games[listOfSeries[0].team1]} - {this.state.games[listOfSeries[0].team2]}
-        </div>
+        {listOfSeries.map((series, i) => (
+          <div>
+            <div>
+              Series {i+1}
+            </div>
+            <div>
+              {idToTeamMap[listOfSeries[i].team1]} vs {idToTeamMap[listOfSeries[i].team2]}
+            </div>
+            <div>
+              {this.state.games[i] ? this.state.games[i][listOfSeries[i].team1] : null} - {this.state.games[i] ? this.state.games[i][listOfSeries[i].team2] : null}
+            </div>
+            <br />
+          </div>
+        ))}
       </div>
     );
   }
@@ -93,8 +114,9 @@ class Home extends React.Component {
             games.winner = team2Id;
           }
 
+          console.log(this.state.games);
           this.setState({
-            ...this.state, games: games, result: result
+            ...this.state, games: this.state.games.concat([games]), result: result
           })
         },
         // Note: it's important to handle errors here
