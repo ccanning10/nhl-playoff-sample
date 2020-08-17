@@ -26,6 +26,9 @@ const idToTeamMap = {
 
 // TODO: If a game is live display it.
 // TODO: If a game is not live, display the date of the next game.
+// TODO: Break down into components
+// TODO: Hooks?
+// TODO: Redux? 
 
 const listOfSeries = [
   // Vegas, chicago
@@ -56,7 +59,7 @@ class Home extends React.Component {
   render() {
     return (
       <div>
-        <h1> Hello Claudole! </h1>
+        <h1> NHL Stanley Cup Playoff Standings </h1>
         {listOfSeries.map((series, i) => (
           <div>
             <div>
