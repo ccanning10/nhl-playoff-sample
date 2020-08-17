@@ -52,7 +52,7 @@ const listOfSeries = [
 class Home extends React.Component {
   constructor(props) {
     super(props);
-    this.state = { games: [], liveGames: [] };
+    this.state = { games: [], liveGames: {} };
     this.timerIDs = [];
   }
 
@@ -95,9 +95,10 @@ class Home extends React.Component {
                   games[homeTeamId] += 1;
                 }
               } else if (gameStatus === 'Live') {
+                this.setLiveGame(game.link, seriesIndex);
                 this.timerIDs[seriesIndex] = setInterval(
                   () => this.setLiveGame(game.link, seriesIndex),
-                  1000,
+                  10 * 1000,
                 );
               }
             });
@@ -141,11 +142,10 @@ class Home extends React.Component {
 
           this.setState((state) => ({
             ...state,
-            liveGames: [
-              ...state.liveGames.slice(0, seriesIndex),
-              liveGame,
-              ...state.liveGames.slice(seriesIndex),
-            ],
+            liveGames: {
+              ...state.liveGames,
+              [seriesIndex]: liveGame,
+            },
           }));
         },
         // Note: it's important to handle errors here
@@ -162,6 +162,7 @@ class Home extends React.Component {
 
   render() {
     const { games } = this.state;
+    const { liveGames } = this.state;
 
     return (
       <div>
@@ -169,31 +170,32 @@ class Home extends React.Component {
         {listOfSeries.map((series, i) => (
           <div>
             <div>
-              Series
+              <b>Series</b>
               {i + 1}
             </div>
             <div>
               {idToTeamMap[listOfSeries[i].team1]}
-              vs
+              <span> vs </span>
               {idToTeamMap[listOfSeries[i].team2]}
             </div>
             <div>
               {games[i] ? games[i][listOfSeries[i].team1] : null}
-              -
+              <span> - </span>
               {games[i] ? games[i][listOfSeries[i].team2] : null}
             </div>
-            {games[i] && games[i].live
+            {liveGames[i]
             && (
             <div>
               Live Game:
               Period:
-              {games[i].period}
-              , Time Remaining:
-              {games[i].timeRemaining}
-              , Score:
-              {games.team1Goals}
-              -
-              {games.team2Goals}
+              <span> </span>
+              {liveGames[i].period}
+              <span>, Time Remaining: </span>
+              {liveGames[i].timeRemaining}
+              <span>, Score: </span>
+              {liveGames[i].team1Goals}
+              <span> - </span>
+              {liveGames[i].team2Goals}
             </div>
             )}
             <br />
