@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import ReactDOM from 'react-dom';
 // import './index.css';
 
@@ -24,7 +24,6 @@ const idToTeamMap = {
 // I'll create the tree bracket data structure on my own, and I'll have to update it I guess
 // can proably do something really cool to have it update automatically, but for now I'll do it
 
-// TODO: If a game is live display it. [untested]
 // TODO: If a game is not live, display the date of the next game.
 // TODO: Break down into components
 // TODO: Hooks?
@@ -52,13 +51,13 @@ const listOfSeries = [
 class Home extends React.Component {
   constructor(props) {
     super(props);
-    this.state = { games: [], liveGames: {} };
+    this.state = { series: [], liveGames: {} };
     this.timerIDs = [];
   }
 
   componentDidMount() {
-    listOfSeries.forEach((series, index) => {
-      this.getGames(series, index);
+    listOfSeries.forEach((seriesTeams, index) => {
+      this.getGames(seriesTeams, index);
     });
   }
 
@@ -66,10 +65,10 @@ class Home extends React.Component {
     clearInterval(this.timerIDs);
   }
 
-  getGames(series, seriesIndex) {
-    const team1Id = series.team1;
-    const team2Id = series.team2;
-    const games = {
+  getGames(seriesTeams, seriesIndex) {
+    const team1Id = seriesTeams.team1;
+    const team2Id = seriesTeams.team2;
+    const series = {
       [team1Id]: 0,
       [team2Id]: 0,
       winner: null,
@@ -90,9 +89,9 @@ class Home extends React.Component {
                 const homeTeamScore = game.teams.home.score;
 
                 if (awayTeamScore > homeTeamScore) {
-                  games[awayTeamId] += 1;
+                  series[awayTeamId] += 1;
                 } else {
-                  games[homeTeamId] += 1;
+                  series[homeTeamId] += 1;
                 }
               } else if (gameStatus === 'Live') {
                 this.setLiveGame(game.link, seriesIndex);
@@ -105,15 +104,19 @@ class Home extends React.Component {
           });
 
           // Is the series over? Who Won?
-          if (games[team1Id] === 4) {
-            games.winner = team1Id;
-          } else if (games[team2Id] === 4) {
-            games.winner = team2Id;
+          if (series[team1Id] === 4) {
+            series.winner = team1Id;
+          } else if (series[team2Id] === 4) {
+            series.winner = team2Id;
           }
 
           this.setState((state) => ({
             ...state,
-            games: [...state.games.slice(0, seriesIndex), games, ...state.games.slice(seriesIndex)],
+            series: [
+              ...state.series.slice(0, seriesIndex),
+              series,
+              ...state.series.slice(seriesIndex),
+            ],
           }));
         },
         // Note: it's important to handle errors here
@@ -161,7 +164,7 @@ class Home extends React.Component {
   }
 
   render() {
-    const { games } = this.state;
+    const { series: games } = this.state;
     const { liveGames } = this.state;
 
     return (
@@ -186,7 +189,7 @@ class Home extends React.Component {
             {liveGames[i]
             && (
             <div>
-              Live Game:
+              *Live Game:
               Period:
               <span> </span>
               {liveGames[i].period}
