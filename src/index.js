@@ -24,7 +24,7 @@ const idToTeamMap = {
 // I'll create the tree bracket data structure on my own, and I'll have to update it I guess
 // can proably do something really cool to have it update automatically, but for now I'll do it
 
-// TODO: If a game is live display it.
+// TODO: If a game is live display it. [untested]
 // TODO: If a game is not live, display the date of the next game.
 // TODO: Break down into components
 // TODO: Hooks?
@@ -53,7 +53,7 @@ const listOfSeries = [
 class Home extends React.Component {
   constructor(props) {
     super(props);
-    this.state = {games: []}
+    this.state = {games: [], liveGames: []}
   }
 
   render() {
@@ -71,6 +71,9 @@ class Home extends React.Component {
             <div>
               {this.state.games[i] ? this.state.games[i][listOfSeries[i].team1] : null} - {this.state.games[i] ? this.state.games[i][listOfSeries[i].team2] : null}
             </div>
+            {this.state.games[i] && this.state.games[i].live &&
+              <div> Live Game: Period: {this.state.games[i].period}, Time Remaining: {this.state.game[i].timeRemaining}, Score: {this.state.game.team1Goals} - {this.state.game.team2Goals}</div>
+            }
             <br />
           </div>
         ))}
@@ -78,13 +81,13 @@ class Home extends React.Component {
     );
   }
 
-  getGames(series) {
+  getGames(series, seriesIndex) {
     let team1Id = series.team1;
     let team2Id = series.team2;
     let games = {
       [team1Id]: 0,
       [team2Id]: 0,
-      winner: null
+      winner: null,
     };
 
     fetch("https://statsapi.web.nhl.com/api/v1/schedule?teamId=" + team1Id + "&startDate=2020-08-11&endDate=2020-08-23")
@@ -107,7 +110,7 @@ class Home extends React.Component {
                   games.[homeTeamId]++;
                 }
               } else if (gameStatus == "Live") {
-                let gameLink = game.link;
+                this.setLiveGame(game.link, seriesIndex);
               }
             });
           });
@@ -120,14 +123,15 @@ class Home extends React.Component {
           }
 
           this.setState((state) => ({
-            ...state, games: this.state.games.concat([games]),
-            // result: result
+            ...state,
+            games: [...this.state.games.slice(0, seriesIndex) , games, ...this.state.games.slice(seriesIndex)],
           }));
         },
         // Note: it's important to handle errors here
         // instead of a catch() block so that we don't swallow
         // exceptions from actual bugs in components.
         (error) => {
+          console.log("ERROR");
           this.setState((state) => ({
             ...state, error: error
           }));
@@ -136,26 +140,33 @@ class Home extends React.Component {
   }
 
   componentDidMount() {
-    listOfSeries.forEach(series => {
-      this.getGames(series);
+    listOfSeries.forEach((series, index) => {
+      this.getGames(series, index);
     });
   }
 
-  setPeriodTime(gameLink) {
+  setLiveGame(gameLink, seriesIndex) {
     fetch("https://statsapi.web.nhl.com" + gameLink)
       .then(res => res.json())
       .then(
         (result) => {
+          let liveGame = {
+            period: result.liveData.linescore.currentPeriodOrdinal,
+            timeRemaining: result.liveData.linescore.currentPeriodTimeRemaining,
+            team1Goals: result.liveData.linescore.teams.home.goals,
+            team2Goals: result.liveData.linescore.teams.away.goals,
+          }
+
           this.setState((state) => ({
             ...state,
-            period: result.liveData.linescore.currentPeriodOrdinal,
-            timeRemaining: result.liveData.linescore.currentPeriodTimeRemaining
+            liveGames: [...this.state.liveGames.slice(0, seriesIndex) , liveGame, ...this.state.liveGames.slice(seriesIndex)],
           }));
         },
         // Note: it's important to handle errors here
         // instead of a catch() block so that we don't swallow
         // exceptions from actual bugs in components.
         (error) => {
+          console.log("ERROR");
           this.setState((state) => ({
             ...state, error: error
           }));
@@ -164,4 +175,4 @@ class Home extends React.Component {
   }
 }
 
-ReactDOM.render(<Home />, document.getElementById("root"));
+ReactDOM.render(<Home key="1"/>, document.getElementById("root"));
