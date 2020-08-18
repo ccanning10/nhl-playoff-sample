@@ -1,6 +1,6 @@
+import PropTypes from 'prop-types'; // ES6
 import React, { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom';
-// import './index.css';
 
 const idToTeamMap = {
   25: 'Dallas Stars',
@@ -54,22 +54,20 @@ function getLiveGame(gameLink) {
   return fetch(`https://statsapi.web.nhl.com${gameLink}`)
     .then((res) => res.json())
     .then(
-      (result) => {
-        return {
-          period: result.liveData.linescore.currentPeriodOrdinal,
-          timeRemaining: result.liveData.linescore.currentPeriodTimeRemaining,
-          team1Goals: result.liveData.linescore.teams.home.goals,
-          team2Goals: result.liveData.linescore.teams.away.goals,
-        };
-      },
+      (result) => ({
+        period: result.liveData.linescore.currentPeriodOrdinal,
+        timeRemaining: result.liveData.linescore.currentPeriodTimeRemaining,
+        team1Goals: result.liveData.linescore.teams.home.goals,
+        team2Goals: result.liveData.linescore.teams.away.goals,
+      }),
       // Note: it's important to handle errors here
       // instead of a catch() block so that we don't swallow
       // exceptions from actual bugs in components.
       (error) => {
-        console.log('ERROR');
+        console.log(`ERROR: ${error}`);
       },
     );
-  }
+}
 
 function getGames(seriesTeams) {
   const team1Id = seriesTeams.team1;
@@ -100,12 +98,7 @@ function getGames(seriesTeams) {
                 currentSeries[homeTeamId] += 1;
               }
             } else if (gameStatus === 'Live') {
-              currentSeries.gameLink = game.link
-              // this.setLiveGame(game.link, seriesIndex);
-              // this.timerIDs[seriesIndex] = setInterval(
-              //   () => this.  setLiveGame(game.link, seriesIndex),
-              //   10 * 1000,
-              // );
+              currentSeries.gameLink = game.link;
             }
           });
         });
@@ -116,72 +109,19 @@ function getGames(seriesTeams) {
         } else if (currentSeries[team2Id] === 4) {
           currentSeries.winner = team2Id;
         }
-        console.log('HERE');
         return currentSeries;
       },
-      // Note: it's important to handle errors here
-      // instead of a catch() block so that we don't swallow
-      // exceptions from actual bugs in components.
       (error) => {
-        // setSeries(series);
-        // setError(error);
-        console.log('ERROR');
+        console.log(`ERROR: ${error}`);
       },
     );
 }
 
-const useClock = (offset = 1, initialTime = new Date()) => {
-  const [time, setTime] = useState(initialTime);
-
-  useEffect(() => {
-    console.log("weird" + offset);
-    const id = setInterval(() => {
-      setTime(() => new Date());
-    }, offset*1000);
-    return () => clearInterval(id);
-  }, []);
-
-  return time;
-}
-
-
-
-
-
-// const useLiveTime = (gameLink) => {
-//   const [period, setPeriod] = useState(new Date());
-
-//   useEffect((gameLink) => {
-//     console.log("period");
-//     const id = setInterval(() => {
-//       setPeriod(() => new Date());
-//     }, 5000);
-//     return () => clearInterval(id);
-//   }, []);
-
-//   return period;
-// };
-
-// function LiveGameTime(props) {
-//   const liveTime = useLiveTime(""); // props.gameLink
-
-//   return (
-//     <div>
-//       Period:
-//       {liveTime.toLocaleTimeString()}
-//     </div>
-//   );
-// }
-
-
-
-
-
 const useGameScore = () => {
-  let [series, setSeries] = useState([]);
+  const [series, setSeries] = useState([]);
 
   useEffect(() => {
-    let promises = [];
+    const promises = [];
     listOfSeries.forEach((seriesTeams) => {
       promises.push(getGames(seriesTeams));
     });
@@ -193,46 +133,52 @@ const useGameScore = () => {
   return series;
 };
 
-const Series = React.memo((props) => {
-  // const series = useGameScore();
-  // props - seriesNumber, team1Id, team2Id, team1Wins, team2Wins
-  // the wins can most likely stay as props since we will rerender this component when the parent passes in new props - ie after the api call.
+const Series = React.memo(({
+  gameLink, seriesNumber, team1Wins,
+  team2Wins, team1Name, team2Name,
+}) => {
+  const [liveGameData, setLiveGameData] = useState({});
 
-  // Not as efficient, but lets just have the live data coming in as a prop too, so the entire thing will rerender.
-
-  // Let's make an effect here for making an
-
-  let [liveGameData, setLiveGameData] = useState({});
-
+  // Update the currently running games with live scores.
   useEffect(() => {
-    console.log("in effect: " + props.gameLink);
-    if (props.gameLink) {
-      getLiveGame(props.gameLink).then((value) => {
+    console.log(`in effect: ${gameLink}`);
+    // Do it once now
+    if (gameLink) {
+      getLiveGame(gameLink).then((value) => {
         setLiveGameData(value);
       });
     }
-  }, [props.gameLink]);
+    // Set up an interval every 10 seconds to update the score.
+    const id = setInterval(() => {
+      if (gameLink) {
+        getLiveGame(gameLink).then((value) => {
+          setLiveGameData(value);
+        });
+      }
+    }, 10 * 1000);
+    return () => clearInterval(id);
+  }, [gameLink]);
 
-  console.log("Rendering: " + props.seriesNumber + ", " + props.team1Wins);
+  console.log(`Rendering: ${seriesNumber}, ${team1Wins}`);
   return (
     <div>
       <div>
         <span>
           <b>
             <span>Series </span>
-            {props.seriesNumber + 1}
+            {seriesNumber + 1}
           </b>
         </span>
       </div>
       <div>
-        {props.team1Name}
+        {team1Name}
         <span> vs </span>
-        {props.team2Name}
+        {team2Name}
       </div>
       <div>
-        {props.team1Wins}
+        {team1Wins}
         <span> - </span>
-        {props.team2Wins}
+        {team2Wins}
       </div>
       {liveGameData.period && (
         <div>
@@ -252,18 +198,24 @@ const Series = React.memo((props) => {
     </div>
   );
 });
+Series.propTypes = {
+  gameLink: PropTypes.string,
+  seriesNumber: PropTypes.number.isRequired,
+  team1Wins: PropTypes.number,
+  team2Wins: PropTypes.number,
+  team1Name: PropTypes.string,
+  team2Name: PropTypes.string,
+};
+Series.defaultProps = {
+  gameLink: null,
+  team1Wins: null,
+  team2Wins: null,
+  team1Name: null,
+  team2Name: null,
+};
 
-function AllGames(props) {
+function AllSeries() {
   const series = useGameScore();
-
-  // We need many components here, each showing the game score state.
-  // Let's try storing the game link in state. The offset for getting the scores will
-  //    change whenever teh game state changes.
-  // We should make one component for displaying the game.
-
-  // 3. Make an offset for the live data that changes whenever the gamelink changes. Need some code to basically do nothing if the game state doesn't exist, which will be the case
-  //     the first time it renders. It will still happpen and not break rule, but won't do anything.
-  // 4.
 
   return (
     <div>
@@ -281,130 +233,13 @@ function AllGames(props) {
   );
 }
 
-function ApplicationCache() {
-  // let [error, setError] = useState("");
-  // let [liveGames, setLiveGames] = useState({});
-  // let [count, setCount] = useState(1);
-  // let [count2, setCount2] = useState(1);
-
-  // const time1 = useClock();
-  // const time2 = useClock(2);
-
-  // useEffect(() => {
-  //   let promises = [];
-  //   listOfSeries.forEach((seriesTeams) => {
-  //     promises.push(getGames(seriesTeams));
-  //   });
-  //   Promise.all(promises).then((values) => {
-  //     setSeries(values);
-  //   });
-  // }, []);
-
+function NHLPlayoffSeries() {
   return (
     <div>
       <h1> NHL Stanley Cup Playoff Standings </h1>
-      {/* {time1.toLocaleTimeString()} */}
-      <div></div>
-      {/* {time2.toLocaleTimeString()} */}
-      {/* <LiveGameTime /> */}
-      <AllGames />
+      <AllSeries />
     </div>
   );
 }
 
-// class Home extends React.Component {
-//   constructor(props) {
-//     super(props);
-//     this.state = { series: [], liveGames: {} };
-//     this.timerIDs = [];
-//   }
-
-//   componentDidMount() {
-//     listOfSeries.forEach((seriesTeams, index) => {
-//       this.getGames(seriesTeams, index);
-//     });
-//   }
-
-//   componentWillUnmount() {
-//     clearInterval(this.timerIDs);
-//   }
-
-//   setLiveGame(gameLink, seriesIndex) {
-//     fetch(`https://statsapi.web.nhl.com${gameLink}`)
-//       .then((res) => res.json())
-//       .then(
-//         (result) => {
-//           const liveGame = {
-//             period: result.liveData.linescore.currentPeriodOrdinal,
-//             timeRemaining: result.liveData.linescore.currentPeriodTimeRemaining,
-//             team1Goals: result.liveData.linescore.teams.home.goals,
-//             team2Goals: result.liveData.linescore.teams.away.goals,
-//           };
-
-//           this.setState((state) => ({
-//             ...state,
-//             liveGames: {
-//               ...state.liveGames,
-//               [seriesIndex]: liveGame,
-//             },
-//           }));
-//         },
-//         // Note: it's important to handle errors here
-//         // instead of a catch() block so that we don't swallow
-//         // exceptions from actual bugs in components.
-//         (error) => {
-//           console.log('ERROR');
-//           this.setState((state) => ({
-//             ...state, error,
-//           }));
-//         },
-//       );
-//   }
-
-//   render() {
-//     const { series: games } = this.state;
-//     const { liveGames } = this.state;
-
-//     return (
-//       <div>
-//         <h1> NHL Stanley Cup Playoff Standings </h1>
-//         {listOfSeries.map((series, i) => (
-//           <div>
-//             <div>
-//               <b>Series</b>
-//               {i + 1}
-//             </div>
-//             <div>
-//               {idToTeamMap[listOfSeries[i].team1]}
-//               <span> vs </span>
-//               {idToTeamMap[listOfSeries[i].team2]}
-//             </div>
-//             <div>
-//               {games[i] ? games[i][listOfSeries[i].team1] : null}
-//               <span> - </span>
-//               {games[i] ? games[i][listOfSeries[i].team2] : null}
-//             </div>
-//             {liveGames[i]
-//             && (
-//             <div>
-//               *Live Game:
-//               Period:
-//               <span> </span>
-//               {liveGames[i].period}
-//               <span>, Time Remaining: </span>
-//               {liveGames[i].timeRemaining}
-//               <span>, Score: </span>
-//               {liveGames[i].team1Goals}
-//               <span> - </span>
-//               {liveGames[i].team2Goals}
-//             </div>
-//             )}
-//             <br />
-//           </div>
-//         ))}
-//       </div>
-//     );
-//   }
-// }
-
-ReactDOM.render(<ApplicationCache key="1" />, document.getElementById('root'));
+ReactDOM.render(<NHLPlayoffSeries key="1" />, document.getElementById('root'));
